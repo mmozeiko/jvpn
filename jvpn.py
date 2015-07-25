@@ -60,6 +60,7 @@ def main():
   p.add_argument("-u", dest="user", action="store", help="username for login")
   p.add_argument("-s", dest="stop", action="store_true", help="stops VPN connection")
   p.add_argument("-i", dest="info", action="store_true", help="display info about current state")
+  p.add_argument("-b", dest="https", action="store_true", help="ignore broken https certificate for web requests")
 
   args = p.parse_args()
 
@@ -99,10 +100,13 @@ def main():
 
   cookies_file = os.path.join(cache, args.host + ".cookies")
   cookies = http.cookiejar.MozillaCookieJar(cookies_file, delayload=True)
-  ctx = ssl.create_default_context()
-  ctx.check_hostname = False
-  ctx.verify_mode = ssl.CERT_NONE
-  opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies), urllib.request.HTTPSHandler(context=ctx))
+  if args.https:
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies), urllib.request.HTTPSHandler(context=ctx))
+  else:
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies))
 
   if os.path.isfile(cookies_file):
     cookies.load()
