@@ -24,13 +24,14 @@ Installation
 Usage
 -----
 
-    jvpn.py [-h] [-c HOST] [-u USER] [-s] [-i]
+    jvpn.py [-h] [-c HOST] [-u USER] [-s] [-i] [-b]
     
       -h, --help  show this help message and exit
       -c HOST     VPN site to connect
       -u USER     username for login
       -s          stops VPN connection
       -i          display info about current state
+      -b          ignore broken https certificate for web request
 
 ### Connecting to VPN
 
