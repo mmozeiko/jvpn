@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import os
@@ -13,14 +13,11 @@ import time
 import signal
 from contextlib import closing
 
+
 try:
   import gzip
 except:
   gzip = None
-try:
-  import zlib
-except:
-  zlib = None
 
 
 def exit_with_error(msg):
@@ -30,23 +27,16 @@ def exit_with_error(msg):
 
 def fetch(opener, cookies, url, data = None):
   req = urllib.request.Request(url)
-  if gzip and zlib:
-    req.add_header("Accept-encoding", "gzip, deflate")
-  elif gzip:
+  if gzip:
     req.add_header("Accept-encoding", "gzip")
-  elif zlib:
-    req.add_header("Accept-encoding", "deflate")
   
   if data:
     data = data.encode("utf-8")
 
   with closing(opener.open(req, data)) as f:
-
     if gzip and f.getheader("content-encoding") == "gzip":
       with gzip.GzipFile(fileobj=f) as ff:
         data = ff.read()
-    elif zlib and f.getheader("content-encoding") == "deflate":
-      data = zlib.decompress(f.read(), -zlib.MAX_WBITS)
     else:
       data = f.read()
 
@@ -86,7 +76,7 @@ def main():
     exit_with_error("ncui binary does not exist")
 
   try:
-    pid = subprocess.check_output(["pidof", "ncsvc"])
+    pid = subprocess.check_output(["pidof", "ncui"])
   except subprocess.CalledProcessError:
     pid = None
 
@@ -109,7 +99,10 @@ def main():
 
   cookies_file = os.path.join(cache, args.host + ".cookies")
   cookies = http.cookiejar.MozillaCookieJar(cookies_file, delayload=True)
-  opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies))
+  ctx = ssl.create_default_context()
+  ctx.check_hostname = False
+  ctx.verify_mode = ssl.CERT_NONE
+  opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies), urllib.request.HTTPSHandler(context=ctx))
 
   if os.path.isfile(cookies_file):
     cookies.load()
@@ -151,17 +144,17 @@ def main():
   data = fetch(opener, cookies, base + "welcome.cgi")
   print("OK", flush=True)
 
-  if "Please sign in to begin your secure session." in data:
+  if '<form name="frmLogin"' in data:
 
     realm = re.search(r'<input type="hidden" name="realm" value="([^"]+)">', data).group(1)
 
     print("Logging in realm '%s'... " % realm, end="", flush=True)
 
-    data = urllib.parse.urlencode({"tz_offset" : "",
+    data = urllib.parse.urlencode({"tz_offset" : "0",
                                    "username"  : args.user,
                                    "password"  : password,
                                    "realm"     : realm,
-                                   "btnSubmit" : "Sign In"})
+                                  })
     data = fetch(opener, cookies, base + "login.cgi", data)
 
     if "Invalid username or password." in data:
